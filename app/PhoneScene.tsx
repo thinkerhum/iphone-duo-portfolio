@@ -33,7 +33,7 @@ const CAM_B = new THREE.Vector3(0.15, 3, 3.6);
 const CAM_C = new THREE.Vector3(0, 0.9, 6.6);
 const CAM_D = new THREE.Vector3(0, 0, 5.22);
 const CURVE = new THREE.QuadraticBezierCurve3(CAM_B, CAM_C, CAM_D);
-const BODY = { frame: "#d8641f", back: "#a8400e", camera: "#b84c14" };
+const BODY = { frame: "#0f1520", back: "#121a26", camera: "#0d131c" };
 const X_AXIS = new THREE.Vector3(1, 0, 0);
 
 function buildEnvironment(renderer: THREE.WebGLRenderer) {
@@ -73,6 +73,24 @@ function floorAlpha() {
   g.fillStyle = grad;
   g.fillRect(0, 0, 256, 256);
   return new THREE.CanvasTexture(c);
+}
+
+// satin "frosted glass" grain for the back: fine noise in the roughness channel
+function frost() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const g = c.getContext("2d")!;
+  const img = g.createImageData(256, 256);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = 112 + Math.random() * 40;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(6, 6);
+  return tex;
 }
 
 export default function PhoneScene({ progress, onLayout, onReady, onOpen }: Props) {
@@ -249,7 +267,7 @@ export default function PhoneScene({ progress, onLayout, onReady, onOpen }: Prop
           const std = mat as THREE.MeshStandardMaterial;
           if (std.isMeshStandardMaterial) std.envMapIntensity = 1.15;
           if (name === "Frame (Night Sky)") { std.color.set(BODY.frame); std.roughness = 0.28; }
-          if (name === "Glass back") { std.color.set(BODY.back); std.roughness = 0.55; }
+          if (name === "Glass back") { std.color.set(BODY.back); std.roughness = 1; std.roughnessMap = frost(); std.metalness = 0.45; std.envMapIntensity = 0.5; }
           if (name === "Camera frame") std.color.set(BODY.camera);
           return mat;
         });
