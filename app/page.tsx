@@ -75,7 +75,6 @@ export default function Home() {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 1;
       progress.current = p;
-      setOpen(p > 0.985);
       setScrolled(p > 0.02);
     };
     onScroll();
@@ -110,7 +109,7 @@ export default function Home() {
   return (
     <main className={`viewport ${open ? "is-open" : ""} ${loaded ? "is-loaded" : ""}`}>
       <div className="scroll-track" aria-hidden="true" />
-      <PhoneScene progress={progress} onLayout={setLayout} onReady={() => setLoaded(true)} />
+      <PhoneScene progress={progress} onLayout={setLayout} onReady={() => setLoaded(true)} onOpen={setOpen} />
       <div className={`scroll-hint ${scrolled ? "is-hidden" : ""}`} aria-hidden="true">Scroll</div>
       <div
         className="screen-overlay"

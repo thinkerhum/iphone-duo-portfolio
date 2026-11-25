@@ -10,6 +10,7 @@ type Props = {
   progress: React.RefObject<number>;
   onLayout: (layout: ScreenLayout) => void;
   onReady: () => void;
+  onOpen: (open: boolean) => void;
 };
 
 const T = (frame: number) => (frame - 1) / 30;
@@ -32,6 +33,7 @@ const CAM_B = new THREE.Vector3(0.15, 3, 3.6);
 const CAM_C = new THREE.Vector3(0, 0.9, 6.6);
 const CAM_D = new THREE.Vector3(0, 0, 5.22);
 const CURVE = new THREE.QuadraticBezierCurve3(CAM_B, CAM_C, CAM_D);
+const BODY = { frame: "#d8641f", back: "#a8400e", camera: "#b84c14" };
 const X_AXIS = new THREE.Vector3(1, 0, 0);
 
 function buildEnvironment(renderer: THREE.WebGLRenderer) {
@@ -73,10 +75,10 @@ function floorAlpha() {
   return new THREE.CanvasTexture(c);
 }
 
-export default function PhoneScene({ progress, onLayout, onReady }: Props) {
+export default function PhoneScene({ progress, onLayout, onReady, onOpen }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const cb = useRef({ onLayout, onReady });
-  cb.current = { onLayout, onReady };
+  const cb = useRef({ onLayout, onReady, onOpen });
+  cb.current = { onLayout, onReady, onOpen };
 
   useEffect(() => {
     const el = host.current!;
@@ -130,6 +132,7 @@ export default function PhoneScene({ progress, onLayout, onReady }: Props) {
     let revealStart = 0;
     let dirty = true;
     let k = 1;
+    let isOpen = false;
 
     const screenTex = new THREE.TextureLoader().load("/assets/screen-ui.jpg", () => { dirty = true; });
     screenTex.flipY = false;
@@ -245,6 +248,9 @@ export default function PhoneScene({ progress, onLayout, onReady }: Props) {
           }
           const std = mat as THREE.MeshStandardMaterial;
           if (std.isMeshStandardMaterial) std.envMapIntensity = 1.15;
+          if (name === "Frame (Night Sky)") { std.color.set(BODY.frame); std.roughness = 0.28; }
+          if (name === "Glass back") { std.color.set(BODY.back); std.roughness = 0.55; }
+          if (name === "Camera frame") std.color.set(BODY.camera);
           return mat;
         });
         mesh.material = Array.isArray(mesh.material) ? next : next[0];
@@ -260,8 +266,12 @@ export default function PhoneScene({ progress, onLayout, onReady }: Props) {
       dirty = true;
     });
 
+    let last = performance.now();
     const loop = () => {
       raf = requestAnimationFrame(loop);
+      const now = performance.now();
+      const ease = 1 - Math.exp(-Math.min(0.1, (now - last) / 1000) * 9);
+      last = now;
       if (!rig) return;
       if (reveal < 1) {
         reveal = clamp01((performance.now() - revealStart) / 1400);
@@ -269,11 +279,13 @@ export default function PhoneScene({ progress, onLayout, onReady }: Props) {
         dirty = true;
       }
       const goal = (progress.current ?? 0) * END;
-      const t = shown < 0 ? goal : shown + (goal - shown) * 0.14;
+      const t = shown < 0 ? goal : shown + (goal - shown) * ease;
       if (Math.abs(t - shown) > 1e-5) { shown = Math.abs(goal - t) < 1e-4 ? goal : t; dirty = true; }
       if (!dirty) return;
       dirty = false;
       pose(shown);
+      const nowOpen = shown >= END - 0.004;
+      if (nowOpen !== isOpen) { isOpen = nowOpen; cb.current.onOpen(nowOpen); }
       renderer.render(scene, camera);
     };
     loop();

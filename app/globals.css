@@ -1,8 +1,12 @@
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: block; src: url("/assets/fonts/inter-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: block; src: url("/assets/fonts/inter-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: block; src: url("/assets/fonts/inter-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 700; font-display: block; src: url("/assets/fonts/inter-latin-700-normal.woff2") format("woff2"); }
 
 :root { --blue: #0088ff; --ink: #1a1a1a; --canvas-scale: 1; }
 * { box-sizing: border-box; }
 html, body { width: 100%; margin: 0; background: #000; overscroll-behavior: none; }
-body, button { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif; }
+body, button { font-family: Inter, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 button { color: inherit; }
 button:focus-visible { outline: 3px solid rgba(0,136,255,.45); outline-offset: 3px; }
 img { display: block; }
@@ -120,7 +124,7 @@ img { display: block; }
 .scroll-track { height: 420vh; }
 .scene { position: fixed; inset: 0; z-index: 0; background: #000; }
 .scene canvas { display: block; width: 100%; height: 100%; }
-.screen-overlay { position: fixed; left: 0; top: 0; z-index: 5; width: 1440px; height: 1011px; border-radius: 81px; overflow: hidden; transform-origin: 0 0; will-change: transform, opacity; opacity: 0; pointer-events: none; transition: opacity 320ms ease; }
+.screen-overlay { position: fixed; background: #000; left: 0; top: 0; z-index: 5; width: 1440px; height: 1011px; border-radius: 81px; overflow: hidden; transform-origin: 0 0; will-change: transform, opacity; opacity: 0; pointer-events: none; transition: opacity 320ms ease; }
 .screen-overlay::after { content: ""; position: absolute; inset: 0; z-index: 40; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 2px #030305, inset 0 0 0 10px #212122; background: linear-gradient(135deg, rgba(255,255,255,.05) 0%, rgba(255,255,255,.015) 40%, rgba(255,255,255,0) 60%); }
 .is-open .screen-overlay { opacity: 1; pointer-events: auto; }
 .scroll-hint { position: fixed; left: 50%; bottom: 28px; z-index: 6; translate: -50% 0; color: rgba(255,255,255,.55); font: 500 12px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; letter-spacing: .18em; text-transform: uppercase; opacity: 0; transition: opacity 500ms ease; }
