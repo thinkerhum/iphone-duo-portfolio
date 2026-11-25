@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import PhoneScene, { type ScreenLayout } from "./PhoneScene";
 
 const services = [
   "Web Design",
@@ -39,10 +40,12 @@ function WifiStatusIcon() {
 }
 
 export default function Home() {
-  const [scale, setScale] = useState(0);
-  const [stage, setStage] = useState<"closed" | "turning" | "opening" | "open">("closed");
+  const progress = useRef(0);
+  const [layout, setLayout] = useState<ScreenLayout | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [navigation, setNavigation] = useState({ history: [0], index: 0 });
-  const [ready, setReady] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [shared, setShared] = useState(false);
@@ -66,29 +69,20 @@ export default function Home() {
     current.index < current.history.length - 1 ? { ...current, index: current.index + 1 } : current
   ));
 
-  // fit the device (designed at 1480 × 840 px) into the window
+  // page scroll drives the story: 0 = phone lying on the floor, 1 = unfolded and live
   useEffect(() => {
-    const fit = () => setScale(Math.min((window.innerWidth * 0.9) / 1480, (window.innerHeight * 0.8) / 840));
-    fit();
-    window.addEventListener("resize", fit);
-    const frame = window.requestAnimationFrame(() => setReady(true));
-    return () => { window.removeEventListener("resize", fit); window.cancelAnimationFrame(frame); };
+    const onScroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 1;
+      progress.current = p;
+      setOpen(p > 0.985);
+      setScrolled(p > 0.02);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); };
   }, []);
-
-  // closed → unfold → open (interactive)
-  const play = () => {
-    setStage("closed");
-    window.setTimeout(() => setStage("turning"), 500);   // closed phone turns to landscape
-    window.setTimeout(() => setStage("opening"), 1500);  // then unfolds
-    window.setTimeout(() => setStage("open"), 3300);     // live and clickable
-  };
-  useEffect(() => {
-    if (!ready) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) { setStage("open"); return; }
-    play();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -114,15 +108,15 @@ export default function Home() {
   };
 
   return (
-    <main className={`viewport is-${stage}`}>
-      <div className="stage" style={{ "--s": scale } as React.CSSProperties}>
-        <div className="floor-shadow" aria-hidden="true" />
-        <div className="device" aria-label="Daniel Kurilenko portfolio on an iPhone Duo">
-          {/* left half — folds around the hinge */}
-          <div className="half half-left">
-            <div className="face face-front">
-              <div className="glass">
-                <div className="canvas canvas-left">
+    <main className={`viewport ${open ? "is-open" : ""} ${loaded ? "is-loaded" : ""}`}>
+      <div className="scroll-track" aria-hidden="true" />
+      <PhoneScene progress={progress} onLayout={setLayout} onReady={() => setLoaded(true)} />
+      <div className={`scroll-hint ${scrolled ? "is-hidden" : ""}`} aria-hidden="true">Scroll</div>
+      <div
+        className="screen-overlay"
+        aria-hidden={!open}
+        style={layout ? { transform: `translate3d(${layout.x}px, ${layout.y}px, 0) scale(${layout.scale})` } : undefined}
+      >
         <section className="screen screen-left" aria-label="Profile and services">
           <aside className="left-rail" aria-label="Contact shortcuts">
             <button className="round-control avatar-control" onClick={() => setContactOpen(true)} aria-label="Open contact panel">
@@ -183,24 +177,6 @@ export default function Home() {
           </div>
         </section>
 
-                </div>
-                <i className="crease crease-left" aria-hidden="true" />
-              </div>
-              <i className="fold-shade" aria-hidden="true" />
-            </div>
-            <div className="face face-back" aria-hidden="true">
-              <span className="camera">
-                <i className="lens lens-1" /><i className="lens lens-2" /><i className="flash" />
-              </span>
-              <svg className="logo" viewBox="0 0 814 1000"><path d="M788 341c-6 4-108 62-108 190 0 148 130 200 134 202-1 3-21 72-69 142-43 62-88 124-157 124s-87-40-166-40c-77 0-104 41-167 41s-107-58-157-129C40 788 0 653 0 525c0-205 133-314 265-314 70 0 128 46 172 46 42 0 107-49 187-49 30 0 139 3 210 104zM551 150c33-39 56-93 56-148 0-7-1-15-2-21-54 2-118 36-157 81-30 35-59 89-59 145 0 9 2 17 2 20 4 1 10 2 16 2 49 0 110-33 144-79z" /></svg>
-            </div>
-          </div>
-
-          {/* right half — stays put */}
-          <div className="half half-right">
-            <div className="face face-front">
-              <div className="glass">
-                <div className="canvas canvas-right">
         <section className="screen screen-right" aria-label="Projects">
           <div
             className={`right-pages ${page === 0 ? "show-card-shadows" : ""}`}
@@ -274,18 +250,7 @@ export default function Home() {
             </button>
           </div>
         </section>
-                </div>
-                <i className="crease crease-right" aria-hidden="true" />
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
-
-      <button className="replay" onClick={play} aria-label="Replay the unfold animation">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v3.7h3.7" /></svg>
-        Replay
-      </button>
     </main>
   );
 }
